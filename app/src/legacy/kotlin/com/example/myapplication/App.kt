@@ -7,10 +7,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.example.myapplication.decompose.RootComponent
 
 @Composable
-fun App(modifier: Modifier = Modifier) {
-    AppCommon(modifier = modifier) {
+fun App(modifier: Modifier = Modifier, component: RootComponent) {
+    AppCommon(modifier = modifier, component = component) {
         Box(
             modifier = Modifier
                 .fillMaxSize()

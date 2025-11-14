@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
+import com.example.myapplication.decompose.SecondaryScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,7 +41,7 @@ fun MainTopBarContent(onSettings: () -> Unit, onLogout: () -> Unit) {
 }
 
 @Composable
-fun MainBottomBarContent(currentTab: Screen.TabScreen, onTabChange: (Screen.TabScreen) -> Unit) {
+fun MainBottomBarContent(currentTab: SecondaryScreen, onTabChange: (SecondaryScreen) -> Unit) {
     val screenHeightPx = LocalWindowInfo.current
         .containerSize
         .height
@@ -61,7 +62,7 @@ fun MainBottomBarContent(currentTab: Screen.TabScreen, onTabChange: (Screen.TabS
 
 @Composable
 fun TabContainerContent(
-    currentTab: Screen.TabScreen,
+    currentTab: SecondaryScreen,
     contentPaddings: PaddingValues,
     showPanels: (Boolean) -> Unit
 ) {

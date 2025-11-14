@@ -24,17 +24,23 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.defaultComponentContext
 import com.example.myapplication.custom_lazy_column.StickyHeaderLazyColumn
 import com.example.myapplication.custom_lazy_column.StickyLazyListScope
+import com.example.myapplication.decompose.RootComponent
+import com.example.myapplication.decompose.RootComponentImpl
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalFoundationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val root = RootComponentImpl(componentContext = defaultComponentContext())
+
         setContent {
             AppTheme {
-                App()
+                App(component = root)
 //            MyApplicationTheme {
 //                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
 //

@@ -1,7 +1,5 @@
 package com.example.myapplication
 
-import android.util.Log
-import android.util.Log.ASSERT
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -48,6 +46,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,47 +66,23 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.arkivanov.decompose.DefaultComponentContext
+import com.arkivanov.decompose.extensions.compose.stack.Children
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.arkivanov.essenty.lifecycle.LifecycleRegistry
+import com.example.myapplication.decompose.MainComponent
+import com.example.myapplication.decompose.MainComponentImpl
+import com.example.myapplication.decompose.PrimaryScreen
+import com.example.myapplication.decompose.RootComponent
+import com.example.myapplication.decompose.SecondaryScreen
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.random.Random
-import kotlin.reflect.KClass
 
 internal const val TOP_BAR_HEIGHT_DP = 50
 internal const val BOTTOM_BAR_HEIGHT_DP = 50
 internal const val PANELS_OFFSET_DP = 16
-
-// --- Навигация ---
-sealed interface Screen {
-    data object Auth : Screen
-    data class Settings(val previous: TabScreen) : Screen
-
-    sealed interface TabScreen : Screen {
-        val position: Int
-
-        interface WebSocketTab
-        data object Tab1 : TabScreen, WebSocketTab {
-            override val position = 0
-        }
-
-        data object Tab2 : TabScreen, WebSocketTab {
-            override val position = 1
-        }
-
-        data object Tab3 : TabScreen {
-            override val position = 2
-        }
-    }
-}
-
-fun topLevelSealedClass(screen: Screen): KClass<out Screen> {
-    var clazz: KClass<out Screen> = screen::class
-    while (clazz.supertypes.firstOrNull()?.classifier is KClass<*> &&
-        (clazz.supertypes.first().classifier as KClass<*>).isSealed
-    ) {
-        clazz = clazz.supertypes.first().classifier as KClass<out Screen>
-    }
-    return clazz
-}
 
 val LocalScreenSize = compositionLocalOf<DpSize> { error(message = "No screen size provided!") }
 
@@ -137,37 +112,29 @@ fun AppTheme(content: @Composable () -> Unit) {
 @Composable
 inline fun AppCommon(
     modifier: Modifier = Modifier,
+    component: RootComponent,
     crossinline content: @Composable (@Composable () -> Unit) -> Unit
 ) {
-    var currentScreen by remember { mutableStateOf<Screen>(value = Screen.Auth) }
-
-    AnimatedContent(
-        targetState = currentScreen,
-        modifier = modifier,
-        transitionSpec = { fadeIn().togetherWith(fadeOut()) },
-        contentKey = { topLevelSealedClass(screen = it) }
-    ) { screen ->
-        content(
-            {
-                when (screen) {
-                    is Screen.Auth -> AuthScreenScaffold {
-                        currentScreen = Screen.TabScreen.Tab1
+    content(
+        {
+            Children(
+                stack = component.primaryStack,
+                modifier = modifier
+            ) {
+                when (val child = it.instance) {
+                    PrimaryScreen.Auth -> AuthScreenScaffold {
+                        component.navigateTabs()
                     }
 
-                    is Screen.Settings -> SettingsScreenScaffold {
-                        currentScreen = screen.previous
+                    PrimaryScreen.Settings -> SettingsScreenScaffold {
+                        component.navigateBack()
                     }
 
-                    is Screen.TabScreen -> MainScreenScaffold(
-                        currentTab = screen,
-                        onTabChange = { currentScreen = it },
-                        onSettings = { currentScreen = Screen.Settings(previous = screen) },
-                        onLogout = { currentScreen = Screen.Auth }
-                    )
+                    is PrimaryScreen.TabScreen -> MainScreenScaffold(component = child.component)
                 }
             }
-        )
-    }
+        }
+    )
 }
 
 @Composable
@@ -195,6 +162,7 @@ inline fun AuthScreenContent(modifier: Modifier, crossinline onLogin: () -> Unit
 fun SettingsScreenScaffold(onBack: () -> Unit) {
     Scaffold(
         topBar = { SettingsTopBar(onBack = onBack) },
+        containerColor = Color.Transparent,
         content = { SettingsContent(contentPaddings = it) }
     )
 }
@@ -273,8 +241,8 @@ fun MainTopBarContentCommon(
 @Composable
 fun MainBottomBarContentCommon(
     modifier: Modifier = Modifier,
-    currentTab: Screen.TabScreen,
-    onTabChange: (Screen.TabScreen) -> Unit
+    currentTab: SecondaryScreen,
+    onTabChange: (SecondaryScreen) -> Unit
 ) {
     Row(
         modifier = modifier,
@@ -282,42 +250,37 @@ fun MainBottomBarContentCommon(
     ) {
         TabButton(
             "Tab1",
-            currentTab == Screen.TabScreen.Tab1
-        ) { onTabChange(Screen.TabScreen.Tab1) }
+            currentTab == SecondaryScreen.Tab1
+        ) { onTabChange(SecondaryScreen.Tab1) }
         TabButton(
             "Tab2",
-            currentTab == Screen.TabScreen.Tab2
-        ) { onTabChange(Screen.TabScreen.Tab2) }
+            currentTab == SecondaryScreen.Tab2
+        ) { onTabChange(SecondaryScreen.Tab2) }
         TabButton(
             "Tab3",
-            currentTab == Screen.TabScreen.Tab3
-        ) { onTabChange(Screen.TabScreen.Tab3) }
+            currentTab == SecondaryScreen.Tab3
+        ) { onTabChange(SecondaryScreen.Tab3) }
     }
 }
 
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun MainScreenScaffold(
-    currentTab: Screen.TabScreen,
-    onTabChange: (Screen.TabScreen) -> Unit,
-    onSettings: () -> Unit,
-    onLogout: () -> Unit
-) {
+fun MainScreenScaffold(component: MainComponent) {
     val snackbarHostState = remember { SnackbarHostState() }
     var showPanels by rememberSaveable { mutableStateOf(value = true) }
 
-    var socketState by rememberSaveable { mutableStateOf(value = false to -1) }
-    LaunchedEffect(key1 = Unit) {
-        while (true) {
-            delay(timeMillis = Random.nextLong(from = 3_300, until = 5_200))
-            socketState = false to Random.nextInt()
+    val stack = component.secondaryStack.subscribeAsState()
+    val active by remember {
+        derivedStateOf {
+            stack.value.active.instance
         }
     }
+    val socketState by component.socketState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(key1 = currentTab is Screen.TabScreen.WebSocketTab, key2 = socketState.second) {
+    LaunchedEffect(key1 = active is SecondaryScreen.WebSocketTab, key2 = socketState.second) {
         // Если перешли на другую вкладку - скрываем активный snackbar
-        if (currentTab !is Screen.TabScreen.WebSocketTab) {
+        if (active !is SecondaryScreen.WebSocketTab) {
             snackbarHostState.currentSnackbarData?.dismiss()
             return@LaunchedEffect
         }
@@ -333,9 +296,7 @@ fun MainScreenScaffold(
                 delay(timeMillis = 1_200)
 
                 // Помечаем статус как прочитанный, только если он все еще актуален
-                if (socketState.second == currentStatus && !socketState.first) {
-                    socketState = true to currentStatus
-                }
+                component.invertFlag(state = currentStatus)
             }
 
             // Сначала скрываем предыдущий snackbar (если есть)
@@ -357,7 +318,10 @@ fun MainScreenScaffold(
                     .fillMaxWidth()
             ) {
                 AnimatedVisibility(visible = showPanels) {
-                    MainTopBarContent(onSettings, onLogout)
+                    MainTopBarContent(
+                        onSettings = component::navigateSettings,
+                        onLogout = component::navigateAuth
+                    )
                 }
             }
         },
@@ -373,14 +337,21 @@ fun MainScreenScaffold(
                     )
             ) {
                 val startWeight by animateFloatAsState(
-                    targetValue = currentTab.position.toFloat(),
+                    targetValue = active.position.toFloat(),
                     animationSpec = tween(durationMillis = 800)
                 )
-                LaunchedEffect(startWeight) {
-                    Log.println(ASSERT, "Weight", startWeight.toString())
-                }
                 AnimatedVisibility(visible = showPanels) {
-                    MainBottomBarContent(currentTab = currentTab, onTabChange = onTabChange)
+                    MainBottomBarContent(
+                        currentTab = active,
+                        onTabChange = {
+                            when (it) {
+                                SecondaryScreen.Tab1 -> component.navigateTab1()
+                                SecondaryScreen.Tab2 -> component.navigateTab2()
+                                SecondaryScreen.Tab3 -> component.navigateTab3()
+                            }
+
+                        }
+                    )
                     AnimatedTabIndicator3(startWeight = startWeight, totalWeight = 3f)
                 }
             }
@@ -389,7 +360,7 @@ fun MainScreenScaffold(
         containerColor = Color.Transparent
     ) { contentPaddings ->
         TabContainerContent(
-            currentTab = currentTab,
+            currentTab = active,
             contentPaddings = contentPaddings
         ) { showPanels = it }
     }
@@ -398,7 +369,7 @@ fun MainScreenScaffold(
 @Composable
 inline fun TabContainerContentCommon(
     modifier: Modifier = Modifier,
-    currentTab: Screen.TabScreen,
+    currentTab: SecondaryScreen,
     crossinline showPanels: (Boolean) -> Unit
 ) {
     Box(modifier = modifier) {
@@ -510,13 +481,19 @@ fun PreviewSettings() {
     showSystemUi = true, apiLevel = 33
 )
 @Composable
-fun PreviewMainTab1() {
+fun PreviewMainTab() {
+    val componentContext = DefaultComponentContext(
+        lifecycle = LifecycleRegistry()
+    )
     AppTheme {
         MainScreenScaffold(
-            currentTab = Screen.TabScreen.Tab1,
-            onTabChange = {},
-            onSettings = {},
-            onLogout = {}
+            component = MainComponentImpl(
+                componentContext = componentContext,
+                startScreen = SecondaryScreen.Tab1,
+                mainContext = Dispatchers.Default,
+                logOut = {},
+                toSettings = {}
+            )
         )
     }
 }
@@ -528,12 +505,18 @@ fun PreviewMainTab1() {
 )
 @Composable
 fun PreviewMainTab2() {
+    val componentContext = DefaultComponentContext(
+        lifecycle = LifecycleRegistry()
+    )
     AppTheme {
         MainScreenScaffold(
-            currentTab = Screen.TabScreen.Tab2,
-            onTabChange = {},
-            onSettings = {},
-            onLogout = {}
+            component = MainComponentImpl(
+                componentContext = componentContext,
+                startScreen = SecondaryScreen.Tab2,
+                mainContext = Dispatchers.Default,
+                logOut = {},
+                toSettings = {}
+            )
         )
     }
 }
@@ -545,12 +528,18 @@ fun PreviewMainTab2() {
 )
 @Composable
 fun PreviewMainTab3() {
+    val componentContext = DefaultComponentContext(
+        lifecycle = LifecycleRegistry()
+    )
     AppTheme {
         MainScreenScaffold(
-            currentTab = Screen.TabScreen.Tab3,
-            onTabChange = {},
-            onSettings = {},
-            onLogout = {}
+            component = MainComponentImpl(
+                componentContext = componentContext,
+                startScreen = SecondaryScreen.Tab3,
+                mainContext = Dispatchers.Default,
+                logOut = {},
+                toSettings = {}
+            )
         )
     }
 }

@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    kotlin("plugin.serialization") version "2.2.21"
 }
 
 kotlin {
@@ -91,5 +92,9 @@ dependencies {
     implementation(dependencyNotation = libs.composeunstyled.primitives)
     implementation(dependencyNotation = libs.composeunstyled.theming)
 
-    implementation(dependencyNotation = kotlin(module = "reflect"))
+    implementation("com.arkivanov.decompose:decompose:3.4.0")
+    implementation("com.arkivanov.decompose:extensions-compose:3.4.0")
+    implementation("com.arkivanov.essenty:lifecycle-coroutines:2.5.0")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 }
