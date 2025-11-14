@@ -56,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -68,7 +69,14 @@ import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.arkivanov.decompose.DefaultComponentContext
+import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.stack.Children
+import com.arkivanov.decompose.extensions.compose.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.stack.animation.plus
+import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.androidPredictiveBackAnimatableV2
+import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.predictiveBackAnimation
+import com.arkivanov.decompose.extensions.compose.stack.animation.scale
+import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.example.myapplication.decompose.MainComponent
@@ -108,38 +116,51 @@ fun AppTheme(content: @Composable () -> Unit) {
 
 
 // --- Основное приложение ---
-@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class,
+    ExperimentalDecomposeApi::class
+)
 @Composable
-inline fun AppCommon(
+fun App(
     modifier: Modifier = Modifier,
-    component: RootComponent,
-    crossinline content: @Composable (@Composable () -> Unit) -> Unit
+    component: RootComponent
 ) {
-    content(
-        {
-            Children(
-                stack = component.primaryStack,
-                modifier = modifier
-            ) {
-                when (val child = it.instance) {
-                    PrimaryScreen.Auth -> AuthScreenScaffold {
-                        component.navigateTabs()
-                    }
-
-                    PrimaryScreen.Settings -> SettingsScreenScaffold {
-                        component.navigateBack()
-                    }
-
-                    is PrimaryScreen.TabScreen -> MainScreenScaffold(component = child.component)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color(color = 0xFF89CFF0), Color(color = 0xFFB19CD9)),
+                )
+            )
+            .background(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(color = 0x33FF0000), Color(color = 0x3300FF00)),
+                )
+            )
+    ) {
+        Children(
+            stack = component.primaryStack,
+            modifier = modifier,
+            animation = predictiveBackAnimation(
+                backHandler = component.backHandler,
+                fallbackAnimation = stackAnimation(animator = fade() + scale()),
+                selector = { backEvent, _, _ -> androidPredictiveBackAnimatableV2(initialBackEvent = backEvent) },
+                onBack = component::navigateBack,
+            )
+        ) {
+            when (val child = it.instance) {
+                PrimaryScreen.Auth -> AuthScreenScaffold {
+                    component.navigateTabs()
                 }
+
+                PrimaryScreen.Settings -> SettingsScreenScaffold {
+                    component.navigateBack()
+                }
+
+                is PrimaryScreen.TabScreen -> MainScreenScaffold(component = child.component)
             }
         }
-    )
-}
-
-@Composable
-fun Dp.toPx() = LocalDensity.current.run {
-    toPx()
+    }
 }
 
 // --- Авторизация ---
@@ -264,7 +285,7 @@ fun MainBottomBarContentCommon(
 }
 
 
-@OptIn(ExperimentalAnimationApi::class)
+@OptIn(ExperimentalAnimationApi::class, ExperimentalDecomposeApi::class)
 @Composable
 fun MainScreenScaffold(component: MainComponent) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -359,10 +380,20 @@ fun MainScreenScaffold(component: MainComponent) {
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Color.Transparent
     ) { contentPaddings ->
-        TabContainerContent(
-            currentTab = active,
-            contentPaddings = contentPaddings
-        ) { showPanels = it }
+        Children(
+            stack = component.secondaryStack,
+            animation = predictiveBackAnimation(
+                backHandler = component.backHandler,
+                fallbackAnimation = stackAnimation(animator = fade() + scale()),
+                selector = { backEvent, _, _ -> androidPredictiveBackAnimatableV2(initialBackEvent = backEvent) },
+                onBack = component::onBack,
+            )
+        ) {
+            TabContainerContent(
+                currentTab = active,
+                contentPaddings = contentPaddings
+            ) { showPanels = it }
+        }
     }
 }
 
@@ -431,21 +462,6 @@ fun AnimatedTabIndicator3(startWeight: Float, totalWeight: Float, indicatorWeigh
                 totalWeight - indicatorWeight - startWeight
             )
         )
-    }
-}
-
-@Composable
-fun rememberScreenSizeInPx(): Size {
-    val screenSize = LocalScreenSize.current
-    val density = LocalDensity.current
-
-    return remember(key1 = screenSize, key2 = density) {
-        with(receiver = density) {
-            Size(
-                width = screenSize.width.toPx(),
-                height = screenSize.height.toPx()
-            )
-        }
     }
 }
 

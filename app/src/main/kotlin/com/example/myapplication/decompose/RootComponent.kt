@@ -59,9 +59,7 @@ class RootComponentImpl(private val componentContext: ComponentContext) : RootCo
         stack + Config.Settings
     }
 
-    override fun navigateBack() {
-        navigation.pop()
-    }
+    override fun navigateBack() = navigation.pop()
 
     @Serializable
     private sealed interface Config {

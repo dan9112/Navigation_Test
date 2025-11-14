@@ -5,6 +5,7 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.navigate
+import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
@@ -32,6 +33,8 @@ interface MainComponent : BackHandlerOwner {
     fun navigateTab3()
     fun navigateSettings()
     fun navigateAuth()
+
+    fun onBack()
 }
 
 class MainComponentImpl(
@@ -95,6 +98,8 @@ class MainComponentImpl(
 
     override fun navigateAuth() = logOut()
     override fun navigateSettings() = toSettings()
+
+    override fun onBack() = navigation.pop()
 
     @Serializable
     private sealed interface Config {
