@@ -55,7 +55,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
@@ -63,22 +62,16 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.arkivanov.decompose.Child
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
-import com.arkivanov.decompose.extensions.compose.stack.Children
-import com.arkivanov.decompose.extensions.compose.stack.animation.fade
-import com.arkivanov.decompose.extensions.compose.stack.animation.plus
-import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.androidPredictiveBackAnimatableV2
-import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.predictiveBackAnimation
-import com.arkivanov.decompose.extensions.compose.stack.animation.scale
-import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
+import com.example.myapplication.custom.Main
 import com.example.myapplication.decompose.MainComponent
 import com.example.myapplication.decompose.MainComponentImpl
 import com.example.myapplication.decompose.PrimaryScreen
@@ -116,14 +109,8 @@ fun AppTheme(content: @Composable () -> Unit) {
 
 
 // --- Основное приложение ---
-@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class,
-    ExperimentalDecomposeApi::class
-)
 @Composable
-fun App(
-    modifier: Modifier = Modifier,
-    component: RootComponent
-) {
+fun AppContainer(content: @Composable () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -138,28 +125,25 @@ fun App(
                 )
             )
     ) {
-        Children(
-            stack = component.primaryStack,
-            modifier = modifier,
-            animation = predictiveBackAnimation(
-                backHandler = component.backHandler,
-                fallbackAnimation = stackAnimation(animator = fade() + scale()),
-                selector = { backEvent, _, _ -> androidPredictiveBackAnimatableV2(initialBackEvent = backEvent) },
-                onBack = component::navigateBack,
-            )
-        ) {
-            when (val child = it.instance) {
-                PrimaryScreen.Auth -> AuthScreenScaffold {
-                    component.navigateTabs()
-                }
+        content()
+    }
+}
 
-                PrimaryScreen.Settings -> SettingsScreenScaffold {
-                    component.navigateBack()
-                }
-
-                is PrimaryScreen.TabScreen -> MainScreenScaffold(component = child.component)
-            }
+@Composable
+fun AppContent(
+    component: RootComponent,
+    child: Child.Created<Any, PrimaryScreen>
+) {
+    when (val child = child.instance) {
+        PrimaryScreen.Auth -> AuthScreenScaffold {
+            component.navigateTabs()
         }
+
+        PrimaryScreen.Settings -> SettingsScreenScaffold {
+            component.navigateBack()
+        }
+
+        is PrimaryScreen.TabScreen -> MainScreenScaffold(component = child.component)
     }
 }
 
@@ -291,7 +275,7 @@ fun MainScreenScaffold(component: MainComponent) {
     val snackbarHostState = remember { SnackbarHostState() }
     var showPanels by rememberSaveable { mutableStateOf(value = true) }
 
-    val stack = component.secondaryStack.subscribeAsState()
+    val stack = component.stack.subscribeAsState()
     val active by remember {
         derivedStateOf {
             stack.value.active.instance
@@ -380,15 +364,7 @@ fun MainScreenScaffold(component: MainComponent) {
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Color.Transparent
     ) { contentPaddings ->
-        Children(
-            stack = component.secondaryStack,
-            animation = predictiveBackAnimation(
-                backHandler = component.backHandler,
-                fallbackAnimation = stackAnimation(animator = fade() + scale()),
-                selector = { backEvent, _, _ -> androidPredictiveBackAnimatableV2(initialBackEvent = backEvent) },
-                onBack = component::onBack,
-            )
-        ) {
+        Main(component = component) {
             TabContainerContent(
                 currentTab = active,
                 contentPaddings = contentPaddings

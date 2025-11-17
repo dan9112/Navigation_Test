@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
@@ -42,6 +43,7 @@ fun MainTopBarContent(onSettings: () -> Unit, onLogout: () -> Unit) {
 
 @Composable
 fun MainBottomBarContent(currentTab: SecondaryScreen, onTabChange: (SecondaryScreen) -> Unit) {
+    val density = LocalDensity.current
     val screenHeightPx = LocalWindowInfo.current
         .containerSize
         .height
@@ -49,7 +51,7 @@ fun MainBottomBarContent(currentTab: SecondaryScreen, onTabChange: (SecondaryScr
         modifier = Modifier
             .fillMaxWidth()
             .drawBackgroundSlice(
-                offsetY = screenHeightPx - BOTTOM_BAR_HEIGHT_DP.dp.toPx()
+                offsetY = screenHeightPx - density.run { BOTTOM_BAR_HEIGHT_DP.dp.toPx() }
             )
             .navigationBarsPadding()
             .height(BOTTOM_BAR_HEIGHT_DP.dp)

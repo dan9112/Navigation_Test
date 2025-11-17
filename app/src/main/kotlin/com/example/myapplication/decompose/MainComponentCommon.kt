@@ -5,9 +5,7 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.navigate
-import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -21,9 +19,8 @@ import kotlinx.serialization.Serializable
 import kotlin.coroutines.CoroutineContext
 import kotlin.random.Random
 
-interface MainComponent : BackHandlerOwner {
-    val secondaryStack: Value<ChildStack<*, SecondaryScreen>>
-
+interface MainComponentCommon {
+    val stack: Value<ChildStack<*, SecondaryScreen>>
     val socketState: StateFlow<Pair<Boolean, Int>>
 
     fun invertFlag(state: Int)
@@ -33,21 +30,18 @@ interface MainComponent : BackHandlerOwner {
     fun navigateTab3()
     fun navigateSettings()
     fun navigateAuth()
-
-    fun onBack()
 }
 
-class MainComponentImpl(
+abstract class MainComponentCommonImpl(
     private val componentContext: ComponentContext,
     startScreen: SecondaryScreen = SecondaryScreen.Tab1,
     mainContext: CoroutineContext = Dispatchers.Main,
     private val logOut: () -> Unit,
     private val toSettings: () -> Unit
-) : MainComponent,
-    ComponentContext by componentContext {
-    private val navigation = StackNavigation<Config>()
+) : MainComponentCommon, ComponentContext by componentContext {
+    protected val navigation = StackNavigation<Config>()
 
-    override val secondaryStack: Value<ChildStack<*, SecondaryScreen>> =
+    override val stack: Value<ChildStack<*, SecondaryScreen>> =
         childStack(
             source = navigation,
             serializer = Config.serializer(), // Or null to disable navigation state saving
@@ -99,10 +93,8 @@ class MainComponentImpl(
     override fun navigateAuth() = logOut()
     override fun navigateSettings() = toSettings()
 
-    override fun onBack() = navigation.pop()
-
     @Serializable
-    private sealed interface Config {
+    protected sealed interface Config {
         @Serializable
         data object Tab1 : Config
 

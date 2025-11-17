@@ -7,24 +7,22 @@ import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.navigate
 import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import kotlinx.serialization.Serializable
 
-interface RootComponent : BackHandlerOwner {
-    val primaryStack: Value<ChildStack<*, PrimaryScreen>>
+interface RootComponentCommon {
+    val stack: Value<ChildStack<*, PrimaryScreen>>
 
     fun navigateTabs()
     fun navigateSettings()
     fun navigateAuth()
-    fun navigateBack()
-
 }
 
-class RootComponentImpl(private val componentContext: ComponentContext) : RootComponent,
+abstract class RootComponentCommonImpl(private val componentContext: ComponentContext) :
+    RootComponentCommon,
     ComponentContext by componentContext {
-    private val navigation = StackNavigation<Config>()
+    protected val navigation = StackNavigation<Config>()
 
-    override val primaryStack: Value<ChildStack<*, PrimaryScreen>> =
+    override val stack: Value<ChildStack<*, PrimaryScreen>> =
         childStack(
             source = navigation,
             serializer = Config.serializer(), // Or null to disable navigation state saving
@@ -36,12 +34,11 @@ class RootComponentImpl(private val componentContext: ComponentContext) : RootCo
     private fun createChild(
         config: Config,
         componentContext: ComponentContext
-    ): PrimaryScreen =
-        when (config) {
-            Config.Auth -> PrimaryScreen.Auth
-            Config.Settings -> PrimaryScreen.Settings
-            Config.TabConfig -> PrimaryScreen.TabScreen(component = tabs(componentContext))
-        }
+    ): PrimaryScreen = when (config) {
+        Config.Auth -> PrimaryScreen.Auth
+        Config.Settings -> PrimaryScreen.Settings
+        Config.TabConfig -> PrimaryScreen.TabScreen(component = tabs(componentContext))
+    }
 
     private fun tabs(componentContext: ComponentContext): MainComponent = MainComponentImpl(
         componentContext = componentContext,
@@ -59,10 +56,8 @@ class RootComponentImpl(private val componentContext: ComponentContext) : RootCo
         stack + Config.Settings
     }
 
-    override fun navigateBack() = navigation.pop()
-
     @Serializable
-    private sealed interface Config {
+    protected sealed interface Config {
         @Serializable
         data object Auth : Config
 
