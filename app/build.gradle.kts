@@ -1,16 +1,23 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+private val FLAVOR_DIMENSION_NAME = "api"
+private val FLAVOR_LEGACY_NAME = "legacy"
+private val FLAVOR_MODERN_NAME = "modern"
+private val JVM_TARGET = 17
+
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
-    kotlin("plugin.serialization") version "2.2.21"
+    with(receiver = libs) {
+        alias(notation = plugins.android.application)
+        alias(notation = plugins.kotlin.android)
+        alias(notation = plugins.kotlin.compose)
+        alias(notation = plugins.kotlin.serialization)
+    }
 }
 
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain(jdkVersion = JVM_TARGET)
     compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget(target = "11"))
+        jvmTarget.set(JvmTarget.fromTarget(target = "$JVM_TARGET"))
     }
 }
 
@@ -31,70 +38,66 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
     buildFeatures {
         compose = true
     }
 
-    flavorDimensions += "api"
+    flavorDimensions += FLAVOR_DIMENSION_NAME
 
     productFlavors {
-        create("modern") {
-            dimension = "api"
-            minSdk = 33
-        }
-        create("legacy") {
-            dimension = "api"
+        create(FLAVOR_LEGACY_NAME) {
+            dimension = FLAVOR_DIMENSION_NAME
             minSdk = 24
+        }
+        create(FLAVOR_MODERN_NAME) {
+            dimension = FLAVOR_DIMENSION_NAME
+            minSdk = 33
         }
     }
 
     sourceSets {
-        named("modern") {
-            kotlin.setSrcDirs(setOf("src/modern/kotlin"))
+        named(FLAVOR_LEGACY_NAME) {
+            kotlin.setSrcDirs(setOf("src/$FLAVOR_LEGACY_NAME/kotlin"))
         }
-        named("legacy") {
-            kotlin.setSrcDirs(setOf("src/legacy/kotlin"))
-        }
-        named("main") {
-            kotlin.setSrcDirs(setOf("src/main/kotlin"))
+        named(FLAVOR_MODERN_NAME) {
+            kotlin.setSrcDirs(setOf("src/$FLAVOR_MODERN_NAME/kotlin"))
         }
     }
 }
 
 dependencies {
+    with(receiver = libs) {
+        implementation(dependencyNotation = androidx.core.ktx)
+        implementation(dependencyNotation = androidx.lifecycle.runtime.ktx)
+        implementation(dependencyNotation = androidx.activity.compose)
+        implementation(dependencyNotation = platform(androidx.compose.bom))
+        implementation(dependencyNotation = androidx.material.icons.core)
+        implementation(dependencyNotation = androidx.ui)
+        implementation(dependencyNotation = androidx.ui.graphics)
+        implementation(dependencyNotation = androidx.ui.tooling.preview)
+        implementation(dependencyNotation = androidx.material3)
+        testImplementation(dependencyNotation = junit)
+        androidTestImplementation(dependencyNotation = androidx.junit)
+        androidTestImplementation(dependencyNotation = androidx.espresso.core)
+        androidTestImplementation(dependencyNotation = platform(androidx.compose.bom))
+        androidTestImplementation(dependencyNotation = androidx.ui.test.junit4)
+        debugImplementation(dependencyNotation = androidx.ui.tooling)
+        debugImplementation(dependencyNotation = androidx.ui.test.manifest)
 
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
-    implementation("androidx.compose.material:material-icons-core")
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
+        implementation(dependencyNotation = composeunstyled)
+        implementation(dependencyNotation = composeunstyled.primitives)
+        implementation(dependencyNotation = composeunstyled.theming)
 
-//    implementation("com.mikepenz:fastadapter-extensions:5.7.0")
-    implementation("com.mikepenz:fastadapter-extensions-expandable:5.7.0")
+        implementation(dependencyNotation = decompose)
+        implementation(dependencyNotation = decompose.extensions.compose)
+        implementation(dependencyNotation = essenty.lifecycle.coroutines)
 
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
-
-    implementation(dependencyNotation = libs.composeunstyled)
-    implementation(dependencyNotation = libs.composeunstyled.primitives)
-    implementation(dependencyNotation = libs.composeunstyled.theming)
-
-    implementation("com.arkivanov.decompose:decompose:3.4.0")
-    implementation("com.arkivanov.decompose:extensions-compose:3.4.0")
-    implementation("com.arkivanov.essenty:lifecycle-coroutines:2.5.0")
-
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+        implementation(dependencyNotation = kotlinx.serialization.json)
+    }
 }
