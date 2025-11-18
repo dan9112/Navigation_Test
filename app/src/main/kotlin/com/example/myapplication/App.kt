@@ -1,5 +1,7 @@
 package com.example.myapplication
 
+import android.util.Log
+import android.util.Log.ASSERT
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -8,6 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,11 +58,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
@@ -111,20 +115,27 @@ fun AppTheme(content: @Composable () -> Unit) {
 // --- Основное приложение ---
 @Composable
 fun AppContainer(content: @Composable () -> Unit) {
+    val screenSize = LocalScreenSize.current
+    val density = LocalDensity.current
+    val sizePx = density.run { screenSize.toSize() }
+    Log.println(
+        ASSERT,
+        "Size",
+        buildString {
+            appendLine("Height:\t${screenSize.height}\t${sizePx.height}\t${sizePx.height * 0.35f}")
+            append("Width:\t${screenSize.width}\t${sizePx.width}\t${sizePx.width * 1.6907f}")
+        }
+    )
+
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color(color = 0xFF89CFF0), Color(color = 0xFFB19CD9)),
-                )
-            )
-            .background(
-                brush = Brush.radialGradient(
-                    colors = listOf(Color(color = 0x33FF0000), Color(color = 0x3300FF00)),
-                )
-            )
+        modifier = Modifier.fillMaxSize()
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.netflix_daredevil_opening_shot_wallpaper),
+            contentDescription = "Background radial effect",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
         content()
     }
 }
@@ -164,9 +175,9 @@ inline fun AuthScreenContent(modifier: Modifier, crossinline onLogin: () -> Unit
 
 // --- Настройки ---
 @Composable
-fun SettingsScreenScaffold(onBack: () -> Unit) {
+inline fun SettingsScreenScaffold(crossinline onBack: () -> Unit) {
     Scaffold(
-        topBar = { SettingsTopBar(onBack = onBack) },
+        topBar = { SettingsTopBar { onBack() } },
         containerColor = Color.Transparent,
         content = { SettingsContent(contentPaddings = it) }
     )
@@ -254,16 +265,16 @@ fun MainBottomBarContentCommon(
         horizontalArrangement = Arrangement.spacedBy(space = 2.dp)
     ) {
         TabButton(
-            "Tab1",
-            currentTab == SecondaryScreen.Tab1
+            label = "Tab1",
+            selected = currentTab == SecondaryScreen.Tab1
         ) { onTabChange(SecondaryScreen.Tab1) }
         TabButton(
-            "Tab2",
-            currentTab == SecondaryScreen.Tab2
+            label = "Tab2",
+            selected = currentTab == SecondaryScreen.Tab2
         ) { onTabChange(SecondaryScreen.Tab2) }
         TabButton(
-            "Tab3",
-            currentTab == SecondaryScreen.Tab3
+            label = "Tab3",
+            selected = currentTab == SecondaryScreen.Tab3
         ) { onTabChange(SecondaryScreen.Tab3) }
     }
 }
