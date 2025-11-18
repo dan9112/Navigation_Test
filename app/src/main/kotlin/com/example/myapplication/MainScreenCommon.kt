@@ -8,31 +8,21 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
@@ -40,8 +30,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -50,9 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,268 +48,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.coerceAtLeast
+import androidx.compose.ui.tooling.preview.PreviewDynamicColors
+import androidx.compose.ui.tooling.preview.PreviewFontScale
+import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
+import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.arkivanov.decompose.Child
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
-import com.example.myapplication.ThemeTemplate.ThemeValue
 import com.example.myapplication.custom.Main
 import com.example.myapplication.decompose.MainComponent
 import com.example.myapplication.decompose.MainComponentImpl
-import com.example.myapplication.decompose.PrimaryScreen
-import com.example.myapplication.decompose.RootComponent
 import com.example.myapplication.decompose.SecondaryScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-internal const val TOP_BAR_HEIGHT_DP = 50
-internal const val BOTTOM_BAR_HEIGHT_DP = 50
-internal const val PANELS_OFFSET_DP = 16
-
-val LocalScreenSize = compositionLocalOf<DpSize> { error(message = "No screen size provided!") }
-
-interface ThemeTemplate {
-    val isDark: Boolean
-    val themeFlag: ThemeValue
-
-    fun changeThemeValue(newValue: ThemeValue)
-
-    sealed interface ThemeValue {
-        data object AsSystem : ThemeValue
-        data object Dark : ThemeValue
-        data object Light : ThemeValue
-    }
-}
-
-class ThemeTemplateImpl(
-    override val themeFlag: ThemeValue,
-    private val changeThemeValue: (ThemeValue) -> Unit,
-    private val isSystemDark: () -> Boolean
-) : ThemeTemplate {
-    override val isDark: Boolean
-        get() = themeFlag == ThemeValue.Dark || themeFlag == ThemeValue.AsSystem && isSystemDark()
-
-    override fun changeThemeValue(newValue: ThemeValue) = changeThemeValue.invoke(newValue)
-}
-
-val LocalThemeTemplate =
-    compositionLocalOf<ThemeTemplate> { error(message = "No theme is dark flag provided!") }
-
-
-
-@Composable
-fun AppTheme(content: @Composable () -> Unit) {
-    MaterialTheme {
-        var darkScheme by rememberSaveable { mutableStateOf<Boolean?>(value = null) }
-
-        val dark = isSystemInDarkTheme()
-
-        val themeTemplate = remember(key1 = dark, key2 = darkScheme) {
-            ThemeTemplateImpl(
-                themeFlag = when (darkScheme) {
-                    true -> ThemeValue.Dark
-                    false -> ThemeValue.Light
-                    null -> ThemeValue.AsSystem
-                },
-                changeThemeValue = {
-                    darkScheme = when (it) {
-                        ThemeValue.AsSystem -> null
-                        ThemeValue.Dark -> true
-                        ThemeValue.Light -> false
-                    }
-                }
-            ) { dark }
-        }
-
-        val density = LocalDensity.current
-        val windowInfo = LocalWindowInfo.current
-
-        val screenSize = windowInfo
-            .containerSize
-            .run {
-                density.run {
-                    DpSize(width = width.toDp(), height = height.toDp())
-                }
-            }
-
-        CompositionLocalProvider(
-            LocalScreenSize provides screenSize,
-            LocalThemeTemplate provides themeTemplate
-        ) {
-            content()
-        }
-    }
-}
-
-
-// --- Основное приложение ---
-@Composable
-fun AppContainer(content: @Composable () -> Unit) {
-    val themeTemplate = LocalThemeTemplate.current
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .run {
-                if (!themeTemplate.isDark) {
-                    background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(Color(color = 0xFFBDCAD0), Color(color = 0xFFA4BBCA)),
-                        )
-                    )
-                } else {
-                    background(
-                        color = Color(color = 0xFF050C19)
-                    ).background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(Color(color = 0xFF607481), Color(color = 0x00050C19))
-                        )
-                    )
-                }
-            }
-    ) {
-        if (!themeTemplate.isDark) {
-            Image(
-                painter = painterResource(id = R.drawable.radial_background),
-                contentDescription = "Background radial effect",
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-        content()
-    }
-}
-
-@Composable
-fun AppContent(
-    component: RootComponent,
-    child: Child.Created<Any, PrimaryScreen>
-) {
-    when (val child = child.instance) {
-        PrimaryScreen.Auth -> AuthScreenScaffold {
-            component.navigateTabs()
-        }
-
-        PrimaryScreen.Settings -> SettingsScreenScaffold {
-            component.navigateBack()
-        }
-
-        is PrimaryScreen.TabScreen -> MainScreenScaffold(component = child.component)
-    }
-}
-
-// --- Авторизация ---
-@Composable
-inline fun AuthScreenContent(modifier: Modifier, crossinline onLogin: () -> Unit) {
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Authorization", fontWeight = FontWeight.Bold, color = Color.White)
-            Spacer(Modifier.height(16.dp))
-            Button(onClick = { onLogin() }) { Text("Login") }
-        }
-    }
-}
-
-// --- Настройки ---
-@Composable
-inline fun SettingsScreenScaffold(crossinline onBack: () -> Unit) {
-    Scaffold(
-        topBar = { SettingsTopBar { onBack() } },
-        containerColor = Color.Transparent,
-        content = { SettingsContent(contentPaddings = it) }
-    )
-}
-
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-inline fun SettingsTopBarCommon(modifier: Modifier, crossinline onBack: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-    ) {
-        TopAppBar(
-            title = { Text("Settings") },
-            modifier = modifier,
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-            navigationIcon = {
-                IconButton(onClick = { onBack() }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back navigation"
-                    )
-                }
-            }
-        )
-    }
-}
-
-@Composable
-fun SettingsContentCommon(modifier: Modifier, contentPaddings: PaddingValues) {
-    val layoutDirection = LocalLayoutDirection.current
-    val themeTemplate = LocalThemeTemplate.current
-    Box(
-        modifier = modifier.padding(
-            start = contentPaddings.calculateStartPadding(layoutDirection),
-            top = (contentPaddings.calculateTopPadding() - PANELS_OFFSET_DP.dp).coerceAtLeast(
-                minimumValue = 0.dp
-            ),
-            end = contentPaddings.calculateEndPadding(layoutDirection),
-            bottom = contentPaddings.calculateBottomPadding()
-        ),
-        contentAlignment = Alignment.Center
-    ) {
-        @Composable
-        fun Variant(themeValue: ThemeValue, label: String) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(shape = RoundedCornerShape(size = 8.dp))
-                    .selectable(
-                        selected = themeTemplate.themeFlag == themeValue,
-                        onClick = { themeTemplate.changeThemeValue(newValue = themeValue) }
-                    )
-                    .padding(all = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                RadioButton(
-                    selected = themeTemplate.themeFlag == themeValue,
-                    onClick = null
-                )
-                Text(text = label)
-            }
-        }
-
-        Column(
-            Modifier
-                .width(IntrinsicSize.Max)
-                .selectableGroup(),
-            verticalArrangement = Arrangement.spacedBy(space = 8.dp)
-        ) {
-            Variant(themeValue = ThemeValue.AsSystem, label = "As system")
-            Variant(themeValue = ThemeValue.Light, label = "Light")
-            Variant(themeValue = ThemeValue.Dark, label = "Dark")
-        }
-    }
-}
-
-// --- MainScreen Scaffold с вкладками ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainTopBarContentCommon(
@@ -514,7 +260,7 @@ fun TabContent(name: String, showPanels: (Boolean) -> Unit) {
 
 // --- Кнопки вкладок ---
 @Composable
-fun RowScope.TabButton(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun RowScope.TabButton(label: String, selected: Boolean, onClick: () -> Unit) {
     Button(
         onClick = onClick,
         modifier = Modifier.weight(1f),
@@ -526,7 +272,11 @@ fun RowScope.TabButton(label: String, selected: Boolean, onClick: () -> Unit) {
 
 // --- Индикатор для 3 вкладок ---
 @Composable
-fun AnimatedTabIndicator3(startWeight: Float, totalWeight: Float, indicatorWeight: Float = 1f) {
+private fun AnimatedTabIndicator3(
+    startWeight: Float,
+    totalWeight: Float,
+    indicatorWeight: Float = 1f
+) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -550,39 +300,40 @@ fun AnimatedTabIndicator3(startWeight: Float, totalWeight: Float, indicatorWeigh
     }
 }
 
-// --- Previews ---
+class SecondaryScreenParameterProvider : PreviewParameterProvider<SecondaryScreen> {
+    override val values = sequenceOf(
+        SecondaryScreen.Tab1, SecondaryScreen.Tab2, SecondaryScreen.Tab3
+    )
+}
+
+@PreviewFontScale
+@PreviewLightDark
+@PreviewDynamicColors
+@PreviewScreenSizes
 @Preview(
-    device = "spec:width=411dp,height=891dp,cutout=punch_hole",
-    showBackground = false,
+    name = "Medium phone tall cutout",
     showSystemUi = true,
-    apiLevel = 34
+    device = "spec:width=411dp,height=891dp,cutout=tall"
 )
-@Composable
-private fun PreviewAuth() {
-    AppTheme {
-        @Suppress("NewApi") AuthScreenScaffold {}
-    }
-}
-
 @Preview(
-    device = "spec:width=411dp,height=891dp,cutout=punch_hole",
-    showBackground = false,
-    showSystemUi = true
+    name = "Medium phone punch hole cutout",
+    showSystemUi = true,
+    device = "spec:width=411dp,height=891dp,cutout=punch_hole"
 )
-@Composable
-fun PreviewSettings() {
-    AppTheme {
-        @Suppress("NewApi") SettingsScreenScaffold {}
-    }
-}
-
 @Preview(
-    device = "spec:width=411dp,height=891dp,cutout=double",
-    showBackground = false,
-    showSystemUi = true, apiLevel = 33
+    name = "Medium phone corner cutout",
+    showSystemUi = true,
+    device = "spec:width=411dp,height=891dp,cutout=corner"
+)
+@Preview(
+    name = "Medium phone double cutout",
+    showSystemUi = true,
+    device = "spec:width=411dp,height=891dp,cutout=double"
 )
 @Composable
-fun PreviewMainTab() {
+private fun PreviewMain(
+    @PreviewParameter(provider = SecondaryScreenParameterProvider::class) screen: SecondaryScreen
+) {
     val componentContext = DefaultComponentContext(
         lifecycle = LifecycleRegistry()
     )
@@ -590,53 +341,7 @@ fun PreviewMainTab() {
         MainScreenScaffold(
             component = MainComponentImpl(
                 componentContext = componentContext,
-                startScreen = SecondaryScreen.Tab1,
-                mainContext = Dispatchers.Default,
-                logOut = {},
-                toSettings = {}
-            )
-        )
-    }
-}
-
-@Preview(
-    device = "spec:width=411dp,height=891dp,cutout=corner",
-    showBackground = false,
-    showSystemUi = true
-)
-@Composable
-fun PreviewMainTab2() {
-    val componentContext = DefaultComponentContext(
-        lifecycle = LifecycleRegistry()
-    )
-    AppTheme {
-        MainScreenScaffold(
-            component = MainComponentImpl(
-                componentContext = componentContext,
-                startScreen = SecondaryScreen.Tab2,
-                mainContext = Dispatchers.Default,
-                logOut = {},
-                toSettings = {}
-            )
-        )
-    }
-}
-
-@Preview(
-    device = "spec:width=411dp,height=891dp,cutout=tall",
-    showBackground = false,
-    showSystemUi = true
-)
-@Composable
-fun PreviewMainTab3() {
-    val componentContext = DefaultComponentContext(
-        lifecycle = LifecycleRegistry()
-    )
-    AppTheme {
-        MainScreenScaffold(
-            component = MainComponentImpl(
-                componentContext = componentContext,
-                startScreen = SecondaryScreen.Tab3,
+                startScreen = screen,
                 mainContext = Dispatchers.Default,
                 logOut = {},
                 toSettings = {}
