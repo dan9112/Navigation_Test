@@ -23,7 +23,7 @@ import com.example.navigation_test.decompose.SecondaryScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainTopBarContent(onSettings: () -> Unit, onLogout: () -> Unit) {
+fun MainTopBarContent(label: String, onSettings: () -> Unit, onLogout: () -> Unit) {
     MainTopBarContentCommon(
         modifier = Modifier
             .clip(
@@ -36,8 +36,9 @@ fun MainTopBarContent(onSettings: () -> Unit, onLogout: () -> Unit) {
             .statusBarsPadding()
             .height(TOP_BAR_HEIGHT_DP.dp)
             .clipToBounds(),
-        onSettings,
-        onLogout
+        label = label,
+        onSettings = onSettings,
+        onLogout = onLogout
     )
 }
 

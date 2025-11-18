@@ -1,13 +1,9 @@
 package com.example.navigation_test
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -74,11 +70,12 @@ import kotlinx.coroutines.launch
 @Composable
 fun MainTopBarContentCommon(
     modifier: Modifier = Modifier,
+    label: String,
     onSettings: () -> Unit,
     onLogout: () -> Unit
 ) {
     TopAppBar(
-        title = { Text("Main") },
+        title = { Text(text = label) },
         modifier = modifier,
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
         actions = {
@@ -179,6 +176,7 @@ fun MainScreenScaffold(component: MainComponent) {
             ) {
                 AnimatedVisibility(visible = showPanels) {
                     MainTopBarContent(
+                        label = active.toString(),
                         onSettings = component::navigateSettings,
                         onLogout = component::navigateAuth
                     )
@@ -235,25 +233,20 @@ inline fun TabContainerContentCommon(
     crossinline showPanels: (Boolean) -> Unit
 ) {
     Box(modifier = modifier) {
-        AnimatedContent(
-            targetState = currentTab,
-            transitionSpec = { fadeIn().togetherWith(fadeOut()) }
-        ) { tab ->
-            TabContent(name = tab.toString()) { showPanels(it) }
-        }
+        TabContent { showPanels(it) }
     }
 }
 
 // --- Контент вкладок ---
 @Composable
-fun TabContent(name: String, showPanels: (Boolean) -> Unit) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = name, color = Color.White)
-            Spacer(Modifier.height(8.dp))
-            Button(onClick = { showPanels(false) }) { Text("Hide Panels") }
-            Spacer(Modifier.height(8.dp))
-            Button(onClick = { showPanels(true) }) { Text("Show Panels") }
+fun TabContent(showPanels: (Boolean) -> Unit) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(space = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Button(onClick = { showPanels(false) }) { Text(text = "Hide Panels") }
+            Button(onClick = { showPanels(true) }) { Text(text = "Show Panels") }
         }
     }
 }
@@ -265,7 +258,7 @@ private fun RowScope.TabButton(label: String, selected: Boolean, onClick: () -> 
         onClick = onClick,
         modifier = Modifier.weight(1f),
         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-        contentPadding = PaddingValues(0.dp),
+        contentPadding = PaddingValues(all = 0.dp),
         elevation = ButtonDefaults.buttonElevation(0.dp)
     ) { Text(label, color = if (selected) Color.White else Color.LightGray) }
 }
