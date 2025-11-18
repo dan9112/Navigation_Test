@@ -1,7 +1,5 @@
 package com.example.myapplication
 
-import android.util.Log
-import android.util.Log.ASSERT
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -12,9 +10,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -27,6 +27,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -38,6 +41,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -58,8 +62,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -75,6 +79,7 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
+import com.example.myapplication.ThemeTemplate.ThemeValue
 import com.example.myapplication.custom.Main
 import com.example.myapplication.decompose.MainComponent
 import com.example.myapplication.decompose.MainComponentImpl
@@ -91,9 +96,59 @@ internal const val PANELS_OFFSET_DP = 16
 
 val LocalScreenSize = compositionLocalOf<DpSize> { error(message = "No screen size provided!") }
 
+interface ThemeTemplate {
+    val isDark: Boolean
+    val themeFlag: ThemeValue
+
+    fun changeThemeValue(newValue: ThemeValue)
+
+    sealed interface ThemeValue {
+        data object AsSystem : ThemeValue
+        data object Dark : ThemeValue
+        data object Light : ThemeValue
+    }
+}
+
+class ThemeTemplateImpl(
+    override val themeFlag: ThemeValue,
+    private val changeThemeValue: (ThemeValue) -> Unit,
+    private val isSystemDark: () -> Boolean
+) : ThemeTemplate {
+    override val isDark: Boolean
+        get() = themeFlag == ThemeValue.Dark || themeFlag == ThemeValue.AsSystem && isSystemDark()
+
+    override fun changeThemeValue(newValue: ThemeValue) = changeThemeValue.invoke(newValue)
+}
+
+val LocalThemeTemplate =
+    compositionLocalOf<ThemeTemplate> { error(message = "No theme is dark flag provided!") }
+
+
+
 @Composable
 fun AppTheme(content: @Composable () -> Unit) {
     MaterialTheme {
+        var darkScheme by rememberSaveable { mutableStateOf<Boolean?>(value = null) }
+
+        val dark = isSystemInDarkTheme()
+
+        val themeTemplate = remember(key1 = dark, key2 = darkScheme) {
+            ThemeTemplateImpl(
+                themeFlag = when (darkScheme) {
+                    true -> ThemeValue.Dark
+                    false -> ThemeValue.Light
+                    null -> ThemeValue.AsSystem
+                },
+                changeThemeValue = {
+                    darkScheme = when (it) {
+                        ThemeValue.AsSystem -> null
+                        ThemeValue.Dark -> true
+                        ThemeValue.Light -> false
+                    }
+                }
+            ) { dark }
+        }
+
         val density = LocalDensity.current
         val windowInfo = LocalWindowInfo.current
 
@@ -105,7 +160,10 @@ fun AppTheme(content: @Composable () -> Unit) {
                 }
             }
 
-        CompositionLocalProvider(value = LocalScreenSize provides screenSize) {
+        CompositionLocalProvider(
+            LocalScreenSize provides screenSize,
+            LocalThemeTemplate provides themeTemplate
+        ) {
             content()
         }
     }
@@ -115,27 +173,35 @@ fun AppTheme(content: @Composable () -> Unit) {
 // --- Основное приложение ---
 @Composable
 fun AppContainer(content: @Composable () -> Unit) {
-    val screenSize = LocalScreenSize.current
-    val density = LocalDensity.current
-    val sizePx = density.run { screenSize.toSize() }
-    Log.println(
-        ASSERT,
-        "Size",
-        buildString {
-            appendLine("Height:\t${screenSize.height}\t${sizePx.height}\t${sizePx.height * 0.35f}")
-            append("Width:\t${screenSize.width}\t${sizePx.width}\t${sizePx.width * 1.6907f}")
-        }
-    )
-
+    val themeTemplate = LocalThemeTemplate.current
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .run {
+                if (!themeTemplate.isDark) {
+                    background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(Color(color = 0xFFBDCAD0), Color(color = 0xFFA4BBCA)),
+                        )
+                    )
+                } else {
+                    background(
+                        color = Color(color = 0xFF050C19)
+                    ).background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(Color(color = 0xFF607481), Color(color = 0x00050C19))
+                        )
+                    )
+                }
+            }
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.netflix_daredevil_opening_shot_wallpaper),
-            contentDescription = "Background radial effect",
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
+        if (!themeTemplate.isDark) {
+            Image(
+                painter = painterResource(id = R.drawable.radial_background),
+                contentDescription = "Background radial effect",
+                modifier = Modifier.fillMaxSize()
+            )
+        }
         content()
     }
 }
@@ -210,6 +276,7 @@ inline fun SettingsTopBarCommon(modifier: Modifier, crossinline onBack: () -> Un
 @Composable
 fun SettingsContentCommon(modifier: Modifier, contentPaddings: PaddingValues) {
     val layoutDirection = LocalLayoutDirection.current
+    val themeTemplate = LocalThemeTemplate.current
     Box(
         modifier = modifier.padding(
             start = contentPaddings.calculateStartPadding(layoutDirection),
@@ -221,7 +288,38 @@ fun SettingsContentCommon(modifier: Modifier, contentPaddings: PaddingValues) {
         ),
         contentAlignment = Alignment.Center
     ) {
-        Text("Settings Content", color = Color.White)
+        @Composable
+        fun Variant(themeValue: ThemeValue, label: String) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shape = RoundedCornerShape(size = 8.dp))
+                    .selectable(
+                        selected = themeTemplate.themeFlag == themeValue,
+                        onClick = { themeTemplate.changeThemeValue(newValue = themeValue) }
+                    )
+                    .padding(all = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RadioButton(
+                    selected = themeTemplate.themeFlag == themeValue,
+                    onClick = null
+                )
+                Text(text = label)
+            }
+        }
+
+        Column(
+            Modifier
+                .width(IntrinsicSize.Max)
+                .selectableGroup(),
+            verticalArrangement = Arrangement.spacedBy(space = 8.dp)
+        ) {
+            Variant(themeValue = ThemeValue.AsSystem, label = "As system")
+            Variant(themeValue = ThemeValue.Light, label = "Light")
+            Variant(themeValue = ThemeValue.Dark, label = "Dark")
+        }
     }
 }
 
