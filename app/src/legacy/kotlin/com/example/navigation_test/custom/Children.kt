@@ -30,10 +30,10 @@ fun App(
 @Composable
 inline fun Main(
     component: BackComponent<SecondaryScreen>,
-    crossinline content: @Composable () -> Unit
+    crossinline content: @Composable (SecondaryScreen) -> Unit
 ) {
     Children(component = component) {
-        content()
+        content(it.instance)
     }
 }
 

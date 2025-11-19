@@ -6,7 +6,6 @@ import com.arkivanov.decompose.Child
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.plus
-import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.androidPredictiveBackAnimatableV2
 import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.predictiveBackAnimation
 import com.arkivanov.decompose.extensions.compose.stack.animation.scale
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
@@ -36,10 +35,10 @@ fun App(
 @Composable
 inline fun Main(
     component: BackComponent<SecondaryScreen>,
-    crossinline content: @Composable () -> Unit
+    crossinline content: @Composable (SecondaryScreen) -> Unit
 ) {
     Children(component = component) {
-        content()
+        content(it.instance)
     }
 }
 
@@ -57,7 +56,6 @@ inline fun <T : Any> Children(
         animation = predictiveBackAnimation(
             backHandler = component.backHandler,
             fallbackAnimation = stackAnimation(animator = fade() + scale()),
-            selector = { backEvent, _, _ -> androidPredictiveBackAnimatableV2(initialBackEvent = backEvent) },
             onBack = component::navigateBack,
         )
     ) { content(it) }

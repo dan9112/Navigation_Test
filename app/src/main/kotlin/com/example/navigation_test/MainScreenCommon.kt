@@ -217,9 +217,9 @@ fun MainScreenScaffold(component: MainComponent) {
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Color.Transparent
     ) { contentPaddings ->
-        Main(component = component) {
+        Main(component = component) { actualScreen ->
             TabContainerContent(
-                currentTab = active,
+                currentTab = actualScreen,
                 contentPaddings = contentPaddings
             ) { showPanels = it }
         }
