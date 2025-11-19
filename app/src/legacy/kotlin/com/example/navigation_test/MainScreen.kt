@@ -4,10 +4,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,20 +37,6 @@ fun MainTopBarContent(label: String, onSettings: () -> Unit, onLogout: () -> Uni
 }
 
 @Composable
-fun MainBottomBarContent(currentTab: SecondaryScreen, onTabChange: (SecondaryScreen) -> Unit) {
-    MainBottomBarContentCommon(
-        modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-            .height(BOTTOM_BAR_HEIGHT_DP.dp)
-            .clipToBounds()
-            .padding(horizontal = 4.dp),
-        currentTab,
-        onTabChange
-    )
-}
-
-@Composable
 fun TabContainerContent(
     currentTab: SecondaryScreen,
     contentPaddings: PaddingValues,
@@ -61,15 +44,14 @@ fun TabContainerContent(
 ) {
     val layoutDirection = LocalLayoutDirection.current
     TabContainerContentCommon(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(
-                start = contentPaddings.calculateStartPadding(layoutDirection),
-                top = contentPaddings.calculateTopPadding() - PANELS_OFFSET_DP.dp,
-                end = contentPaddings.calculateEndPadding(layoutDirection),
-                bottom = contentPaddings.calculateBottomPadding() - PANELS_OFFSET_DP.dp
-            ),
-        currentTab,
-        showPanels
+        modifier = Modifier.fillMaxSize(),
+        currentTab = currentTab,
+        contentPadding = PaddingValues(
+            start = contentPaddings.calculateStartPadding(layoutDirection),
+            top = contentPaddings.calculateTopPadding() - PANELS_OFFSET_DP.dp,
+            end = contentPaddings.calculateEndPadding(layoutDirection),
+            bottom = contentPaddings.calculateBottomPadding() - PANELS_OFFSET_DP.dp
+        ),
+        showPanels = showPanels
     )
 }

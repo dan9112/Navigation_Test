@@ -2,6 +2,7 @@ package com.example.navigation_test.decompose
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.pop
+import com.arkivanov.essenty.backhandler.BackHandler
 import kotlinx.coroutines.Dispatchers
 import kotlin.coroutines.CoroutineContext
 

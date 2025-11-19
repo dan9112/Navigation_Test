@@ -21,8 +21,7 @@ abstract class RootComponentCommonImpl(private val componentContext: ComponentCo
     ComponentContext by componentContext {
     protected val navigation = StackNavigation<Config>()
 
-    override val stack: Value<ChildStack<*, PrimaryScreen>> =
-        childStack(
+    override val stack: Value<ChildStack<*, PrimaryScreen>> = childStack(
             source = navigation,
             serializer = Config.serializer(), // Or null to disable navigation state saving
             initialConfiguration = Config.Auth,

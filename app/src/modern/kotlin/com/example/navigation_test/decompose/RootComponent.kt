@@ -15,8 +15,6 @@ interface BackComponent<T : Any> : BackHandlerOwner {
 interface RootComponent : RootComponentCommon, BackComponent<PrimaryScreen>
 
 internal class RootComponentImpl(componentContext: ComponentContext) :
-    RootComponentCommonImpl(componentContext),
-    RootComponent {
-
+    RootComponentCommonImpl(componentContext), RootComponent {
     override fun navigateBack() = navigation.pop()
 }

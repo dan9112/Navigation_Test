@@ -12,20 +12,33 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.outlined.List
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -44,7 +57,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewDynamicColors
 import androidx.compose.ui.tooling.preview.PreviewFontScale
@@ -101,21 +117,27 @@ fun MainBottomBarContentCommon(
     currentTab: SecondaryScreen,
     onTabChange: (SecondaryScreen) -> Unit
 ) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(space = 2.dp)
+    BottomAppBar(
+        modifier = modifier.clipToBounds(),
+        containerColor = Color(color = 0xFF171C26)
     ) {
         TabButton(
-            label = "Tab1",
-            selected = currentTab == SecondaryScreen.Tab1
+            label = SecondaryScreen.Tab1.name,
+            selected = currentTab == SecondaryScreen.Tab1,
+            selectedIcon = Icons.Filled.Home,
+            unselectedIcon = Icons.Outlined.Home,
         ) { onTabChange(SecondaryScreen.Tab1) }
         TabButton(
-            label = "Tab2",
-            selected = currentTab == SecondaryScreen.Tab2
+            label = SecondaryScreen.Tab2.name,
+            selected = currentTab == SecondaryScreen.Tab2,
+            selectedIcon = Icons.Filled.Favorite,
+            unselectedIcon = Icons.Outlined.Favorite,
         ) { onTabChange(SecondaryScreen.Tab2) }
         TabButton(
-            label = "Tab3",
-            selected = currentTab == SecondaryScreen.Tab3
+            label = SecondaryScreen.Tab3.name,
+            selected = currentTab == SecondaryScreen.Tab3,
+            selectedIcon = Icons.AutoMirrored.Filled.List,
+            unselectedIcon = Icons.AutoMirrored.Outlined.List,
         ) { onTabChange(SecondaryScreen.Tab3) }
     }
 }
@@ -184,22 +206,21 @@ fun MainScreenScaffold(component: MainComponent) {
             }
         },
         bottomBar = {
-            Box(
-                Modifier
-                    .heightIn(min = PANELS_OFFSET_DP.dp)
-                    .clip(
-                        shape = RoundedCornerShape(
-                            topStart = PANELS_OFFSET_DP.dp,
-                            topEnd = PANELS_OFFSET_DP.dp
-                        )
-                    )
-            ) {
+            Box(Modifier.heightIn(min = PANELS_OFFSET_DP.dp)) {
                 val startWeight by animateFloatAsState(
                     targetValue = active.position.toFloat(),
                     animationSpec = tween(durationMillis = 800)
                 )
                 AnimatedVisibility(visible = showPanels) {
-                    MainBottomBarContent(
+                    MainBottomBarContentCommon(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(
+                                shape = RoundedCornerShape(
+                                    topStart = PANELS_OFFSET_DP.dp,
+                                    topEnd = PANELS_OFFSET_DP.dp
+                                )
+                            ),
                         currentTab = active,
                         onTabChange = {
                             when (it) {
@@ -226,21 +247,111 @@ fun MainScreenScaffold(component: MainComponent) {
     }
 }
 
+
 @Composable
 inline fun TabContainerContentCommon(
     modifier: Modifier = Modifier,
     currentTab: SecondaryScreen,
+    contentPadding: PaddingValues,
     crossinline showPanels: (Boolean) -> Unit
 ) {
     Box(modifier = modifier) {
-        TabContent { showPanels(it) }
+        when (currentTab) {
+            SecondaryScreen.Tab1 -> {
+                val layoutDirection = LocalLayoutDirection.current
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        modifier = Modifier.padding(
+                            top = contentPadding.calculateTopPadding(),
+                            bottom = contentPadding.calculateBottomPadding()
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(space = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Indicators imitation",
+                            modifier = Modifier.padding(
+                                start = contentPadding.calculateStartPadding(layoutDirection),
+                                end = contentPadding.calculateEndPadding(layoutDirection)
+                            )
+                        )
+                        LazyRow(
+                            modifier = Modifier
+                                .padding(vertical = 8.dp)
+                                .height(16.dp + 45.dp)
+                                .fillMaxWidth(),
+                            contentPadding = PaddingValues(
+                                start = contentPadding.calculateStartPadding(layoutDirection) + 8.dp,
+                                top = 0.dp,
+                                end = contentPadding.calculateEndPadding(layoutDirection) + 8.dp,
+                                bottom = 0.dp,
+                            ),
+                            horizontalArrangement = Arrangement.spacedBy(space = 4.dp)
+                        ) {
+                            items(
+                                count = 20,
+                                key = { it }) {
+                                Box(
+                                    modifier = Modifier
+                                        .aspectRatio(1f)
+                                        .clip(shape = RoundedCornerShape(size = 8.dp))
+                                        .background(color = Color.Blue)
+                                )
+                            }
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    start = contentPadding.calculateStartPadding(layoutDirection) + 8.dp,
+                                    end = contentPadding.calculateEndPadding(layoutDirection) + 8.dp
+                                ),
+                            horizontalArrangement = Arrangement.spacedBy(space = 8.dp)
+                        ) {
+                            Button(
+                                onClick = {},
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(size = 8.dp)
+                            ) {
+                                Text(text = "Btn 1")
+                            }
+                            Button(
+                                onClick = {},
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(size = 8.dp)
+                            ) {
+                                Text(text = "Btn 2")
+                            }
+                            Button(
+                                onClick = {},
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(size = 8.dp)
+                            ) {
+                                Text(text = "Btn 3")
+                            }
+                        }
+                    }
+                }
+            }
+
+            SecondaryScreen.Tab2, SecondaryScreen.Tab3 -> {
+                TabContent(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues = contentPadding)
+                ) { showPanels(it) }
+            }
+        }
     }
 }
 
 // --- Контент вкладок ---
 @Composable
-fun TabContent(showPanels: (Boolean) -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+fun TabContent(modifier: Modifier = Modifier, showPanels: (Boolean) -> Unit) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Column(
             verticalArrangement = Arrangement.spacedBy(space = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -253,14 +364,25 @@ fun TabContent(showPanels: (Boolean) -> Unit) {
 
 // --- Кнопки вкладок ---
 @Composable
-private fun RowScope.TabButton(label: String, selected: Boolean, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
+private inline fun RowScope.TabButton(
+    label: String,
+    selected: Boolean,
+    selectedIcon: ImageVector,
+    unselectedIcon: ImageVector,
+    crossinline onClick: () -> Unit
+) {
+    NavigationBarItem(
+        selected = selected,
+        onClick = { onClick() },
+        icon = {
+            Icon(
+                imageVector = if (selected) selectedIcon else unselectedIcon,
+                contentDescription = "Nav bar icon"
+            )
+        },
         modifier = Modifier.weight(1f),
-        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-        contentPadding = PaddingValues(all = 0.dp),
-        elevation = ButtonDefaults.buttonElevation(0.dp)
-    ) { Text(label, color = if (selected) Color.White else Color.LightGray) }
+        label = { Text(text = label) }
+    )
 }
 
 // --- Индикатор для 3 вкладок ---
@@ -270,10 +392,16 @@ private fun AnimatedTabIndicator3(
     totalWeight: Float,
     indicatorWeight: Float = 1f
 ) {
+    val layoutDirection = LocalLayoutDirection.current
+    val contentPadding = BottomAppBarDefaults.ContentPadding
     Row(
         Modifier
             .fillMaxWidth()
             .height(4.dp)
+            .padding(
+                start = contentPadding.calculateStartPadding(layoutDirection),
+                end = contentPadding.calculateEndPadding(layoutDirection)
+            )
     ) {
         if (startWeight > 0f) Spacer(modifier = Modifier.weight(startWeight))
         Box(
